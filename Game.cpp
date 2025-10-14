@@ -1,6 +1,6 @@
 #include "Game.h"
-#include "raylib.h"
-// #include <cstdlib>
+//#include "raylib.h"
+#include <cstdlib>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -25,8 +25,25 @@ std::mt19937 gen(42); // Seed
 int rollDice() {
     std::uniform_int_distribution<> distrib(1, 6); // Uniform integer dist
     int random_number = distrib(gen);
-    std::cout << "Rolled: " << random_number << "." << std::endl;
     return random_number;
+}
+
+void printStats(Player p) {
+    std::cout << "| == " << p.name << " Stats == | " << p.attack << std::endl;
+    std::cout << "| Attack: " << p.attack << std::endl;
+    std::cout << "| Defense: " << p.defense << std::endl;
+    std::cout << "| Health: " << p.health << std::endl;
+}
+
+void ClearTerminal() {
+    #if defined _WIN32
+        system("cls");
+    #elif defined (__LINUX__) || defined(__gnu_linux__) || defined(__linux__)
+        system("clear");
+        //std::cout<< u8"\033[2J\033[1;1H"; //Using ANSI Escape Sequences 
+    #elif defined (__APPLE__)
+        system("clear");
+    #endif
 }
 
 int Game::run() {
@@ -35,58 +52,62 @@ int Game::run() {
     std::string input;         // string containing user input 
     std::vector<std::string> input_vec; // Input break into tokens
 
-    // Player stuff 
-    int cur_roll = 1;
-    int cur_atk = 0;
-
-    // Enemy stuff
-    int enemy_roll = 1;
-    int enemy_atk = 0;
-
-    // Current turn
+    
+    Player p = Player( "Player" );      // Player  
+    Player enemy = Player( "Monster" );  // Enemy 
     std::string turn = "player";
 
     while (true) {
-        std::cout << "Attack: " << cur_atk << std::endl;
+        printStats(p); 
         std::cout << "Actions: " << std::endl;
-        std::cout << "[R] Roll | [A] Attack (" << cur_atk << ")" << std::endl; 
+        std::cout << "[R] Roll | [A] Attack (" << p.attack << ")" << std::endl; 
         std::cout << "> ";
         std::getline(std::cin, input);
         input_vec = tokenize(input);
 
+        // Clean terminal
+        ClearTerminal();
         if (!input_vec.empty()) {
             // Exit 
             if (input_vec[0] == "exit") {
                 break;
             }
+            // Roll 
             else if (input_vec[0] == "R") {
-                std::cout << "Rolled: " << std::endl;
-                cur_roll = rollDice();
-                if (cur_roll == 1 ){
-                    cur_atk = 0;
-                    turn = "player";
+                p.roll = rollDice();
+                // Lose turn 
+                if (p.roll == 1 ){
+                    p.attack = 0;
+                    turn = "enemy"; // Player loses its turn 
                 }
+                // Double damage
+                else if (p.roll == 6){
+                    p.attack = p.attack * 2; 
+                }
+                // Normal roll
                 else {
-                    cur_atk += cur_roll; 
-                    turn = "enemy";
+                    p.attack += p.roll; 
                 }
             }
+            // Attack
             else if (input_vec[0] == "A") {
-                std::cout << "Attacked enemy: -" << cur_atk << std::endl;
-                cur_atk = 0; 
+                std::cout << "Attacked enemy: -" << p.attack << std::endl;
+                p.attack = 0; 
+                turn = "enemy"; // Finished turn 
             }
             else {
                 std::cout << input_vec[0] << ": command not found" << std::endl;
             }
 
-            // Monster's turn
+            // Enemy's turn
             if (turn != "player") {
-                enemy_roll = rollDice();
-                enemy_atk += enemy_roll;
-                std::cout << "Monster rolled: " << enemy_roll << std::endl;
-                std::cout << "Monster attacked " << enemy_atk << std::endl;
-                enemy_atk = 0;
-                turn = "player";
+                enemy.roll = rollDice();
+                std::cout << "Enemy rolled: " << enemy.roll << std::endl;
+                enemy.attack += enemy.roll;
+                std::cout << "Enemy attacked " << enemy.attack << std::endl;
+                p.health = p.health - std::abs( enemy.attack - p.defense );
+                enemy.attack = 0;
+                turn = "player"; // finish turn 
             }
         }
 

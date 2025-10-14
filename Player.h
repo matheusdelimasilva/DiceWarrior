@@ -1,18 +1,18 @@
 #pragma once
 
-#include "raylib.h"
+//#include "raylib.h"
+#include <string> 
 
 class Player
 {
 public:
-    Player();
-    void Update();
-    void Draw();
-    Rectangle getRect();
+    std::string name; 
+    int roll = 0; 
+    int attack = 0; 
+    int defense = 0;
+    int health = 50;
 
+    Player();
 private:
-    Vector2 position;
-    float speed;
-    Texture2D texture;
-    float scale;
+    
 };
