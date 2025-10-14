@@ -5,7 +5,8 @@
 
 class Game {
     public:
-        int Game::run();
+        Game();
+        int run();
 
     private:
         // Player player;
