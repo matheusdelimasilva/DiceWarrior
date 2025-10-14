@@ -12,7 +12,7 @@ public:
     int defense = 0;
     int health = 50;
 
-    Player();
+    Player(const std::string& name);
 private:
     
 };

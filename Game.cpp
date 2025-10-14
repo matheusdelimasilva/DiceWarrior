@@ -35,6 +35,12 @@ void printStats(Player p) {
     std::cout << "| Health: " << p.health << std::endl;
 }
 
+void printMessage(const std::string& msg) {
+    std::cout << "=======================================" << std::endl;
+    std::cout << "|             " << msg << "            |" << std::endl;
+    std::cout << "=======================================" << std::endl;
+}
+
 void ClearTerminal() {
     #if defined _WIN32
         system("cls");
@@ -52,12 +58,19 @@ int Game::run() {
     std::string input;         // string containing user input 
     std::vector<std::string> input_vec; // Input break into tokens
 
+    ClearTerminal();
     
     Player p = Player( "Player" );      // Player  
     Player enemy = Player( "Monster" );  // Enemy 
     std::string turn = "player";
 
+    std::string msg = "Welcome!";
+
     while (true) {
+        // Print a msg (if it exists)
+        if (!msg.empty()) {
+            printMessage(msg);
+        }
         printStats(p); 
         std::cout << "Actions: " << std::endl;
         std::cout << "[R] Roll | [A] Attack (" << p.attack << ")" << std::endl; 

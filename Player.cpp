@@ -1,8 +1,8 @@
 #include "Player.h"
 
 // Constructor 
-Player::Player(std::string name) {
-    name = name; 
+Player::Player(const std::string& name) {
+    this->name = name; 
 }
 
 
