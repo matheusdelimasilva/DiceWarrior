@@ -5,8 +5,11 @@
 #include <string>
 #include <vector>
 #include <sstream>
-#include <random> // For random number generation
+#include <random>
+
 // #include <unordered_set>
+
+#define SCREEN_WIDTH 120
 
 // Takes an input string and breaks it into a vector.
 std::vector<std::string> tokenize(std::string input) {
@@ -20,25 +23,40 @@ std::vector<std::string> tokenize(std::string input) {
     return tokens;
 }
 
-std::mt19937 gen(42); // Seed
 
-int rollDice() {
-    std::uniform_int_distribution<> distrib(1, 6); // Uniform integer dist
-    int random_number = distrib(gen);
-    return random_number;
+
+// Repeats a char n times
+void printRepeatChar(char c, int n) {
+    for (int i = 0; i < n; i++) {
+        std::cout << c;
+    }
 }
 
-void printStats(Player p) {
-    std::cout << "| == " << p.name << " Stats == | " << p.attack << std::endl;
-    std::cout << "| Attack: " << p.attack << std::endl;
-    std::cout << "| Defense: " << p.defense << std::endl;
-    std::cout << "| Health: " << p.health << std::endl;
-}
+void printMessage(std::vector<std::string>& msgs, bool center=false) {
+    printRepeatChar('=', SCREEN_WIDTH); std::cout << std::endl;
 
-void printMessage(const std::string& msg) {
-    std::cout << "=======================================" << std::endl;
-    std::cout << "|             " << msg << "            |" << std::endl;
-    std::cout << "=======================================" << std::endl;
+    if (center == true) {
+        for (const auto& msg : msgs) { 
+            std::cout << "|"; 
+            int half = (( SCREEN_WIDTH - msg.length() ) / 2) - 1; 
+            printRepeatChar(' ', half); std::cout << msg; printRepeatChar(' ', half); 
+            std::cout <<"|" << std::endl;
+            printRepeatChar('=', SCREEN_WIDTH); std::cout << std::endl;
+        }
+    }
+    else {
+        for (const auto& msg : msgs) {
+            std::cout << "| " << msg; 
+            int padding = SCREEN_WIDTH - msg.length() - 4;
+            printRepeatChar(' ', padding);
+            std::cout << " |" << std::endl; 
+        }
+    }
+    if (!msgs.empty()) {
+        msgs.pop_back();
+    }
+    printRepeatChar('=', SCREEN_WIDTH); std::cout << std::endl;
+
 }
 
 void ClearTerminal() {
@@ -58,20 +76,21 @@ int Game::run() {
     std::string input;         // string containing user input 
     std::vector<std::string> input_vec; // Input break into tokens
 
+    this->turn = "player"; // Player starts the round
+
     ClearTerminal();
     
-    Player p = Player( "Player" );      // Player  
-    Player enemy = Player( "Monster" );  // Enemy 
-    std::string turn = "player";
+    Player p     = Player( "Player", this);      // Player  
+    Player enemy = Player( "Monster", this );  // Enemy 
 
-    std::string msg = "Welcome!";
+    this->addMessage("Welcome!");
 
     while (true) {
         // Print a msg (if it exists)
-        if (!msg.empty()) {
-            printMessage(msg);
+        if (!msgs.empty()) {
+            printMessage(msgs); 
         }
-        printStats(p); 
+        p.printStats(); 
         std::cout << "Actions: " << std::endl;
         std::cout << "[R] Roll | [A] Attack (" << p.attack << ")" << std::endl; 
         std::cout << "> ";
@@ -79,48 +98,29 @@ int Game::run() {
         input_vec = tokenize(input);
 
         // Clean terminal
-        ClearTerminal();
+        //ClearTerminal();
         if (!input_vec.empty()) {
             // Exit 
             if (input_vec[0] == "exit") {
                 break;
             }
-            // Roll 
-            else if (input_vec[0] == "R") {
-                p.roll = rollDice();
-                // Lose turn 
-                if (p.roll == 1 ){
-                    p.attack = 0;
-                    turn = "enemy"; // Player loses its turn 
-                }
-                // Double damage
-                else if (p.roll == 6){
-                    p.attack = p.attack * 2; 
-                }
-                // Normal roll
-                else {
-                    p.attack += p.roll; 
-                }
+            // Player's turn 
+            if (this->turn == "player") {
+                p.run_turn(input_vec); 
             }
-            // Attack
-            else if (input_vec[0] == "A") {
-                std::cout << "Attacked enemy: -" << p.attack << std::endl;
-                p.attack = 0; 
-                turn = "enemy"; // Finished turn 
+            // Enemy's turn
+            if (this->turn == "enemy") {
+                enemy.run_turn();
+                // enemy.roll = rollDice(1, 6);
+                // std::cout << "Enemy rolled: " << enemy.roll << std::endl;
+                // enemy.attack += enemy.roll;
+                // std::cout << "Enemy attacked " << enemy.attack << std::endl;
+                // p.health = p.health - std::abs( enemy.attack - p.defense );
+                // enemy.attack = 0;
+                // turn = "player"; // finish turn 
             }
             else {
-                std::cout << input_vec[0] << ": command not found" << std::endl;
-            }
-
-            // Enemy's turn
-            if (turn != "player") {
-                enemy.roll = rollDice();
-                std::cout << "Enemy rolled: " << enemy.roll << std::endl;
-                enemy.attack += enemy.roll;
-                std::cout << "Enemy attacked " << enemy.attack << std::endl;
-                p.health = p.health - std::abs( enemy.attack - p.defense );
-                enemy.attack = 0;
-                turn = "player"; // finish turn 
+                std::cerr << "Turn unidentified" << std::endl;
             }
         }
 
@@ -131,7 +131,24 @@ int Game::run() {
 }
 
 Game::Game() {   
-    
+    this->seed = 42;
+}
+
+void Game::addMessage(const std::string& msg) {
+    this->msgs.push_back(msg);
+}
+
+void Game::setTurn(const std::string& newTurn) {
+    this->turn = newTurn;
+    this->gen = std::mt19937(seed);
+}
+
+int Game::getSeed() {
+    return this->seed; 
+}
+
+std::mt19937& Game::getGenerator() {
+    return this->gen;
 }
 
 // void Game::Update()
