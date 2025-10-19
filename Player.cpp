@@ -2,12 +2,17 @@
 #include "Game.h"
 #include <random> 
 #include <iostream>
-#include <format>
+#include <fmt/core.h>
+
 
 // Constructor 
-Player::Player(const std::string& name, Game* game) {
+Player::Player(const std::string& name, Game* game, int health) {
     this->name        = name; 
     this->gameContext = game; 
+    this->health      = health;
+    this->roll        = 0; 
+    this->attack      = 0; 
+    this->defense     = 0;
 }
 
 int Player::rollDice(int min, int max) {
@@ -24,23 +29,42 @@ void Player::run_turn(std::vector<std::string> input_vec) {
         // Lose turn 
         if (this->roll == 1 ){
             this->attack = 0;
-            this->gameContext->addMessage(std::format("{} rolled 1, lost turn!", this->name));
+            this->gameContext->addMessage(fmt::format("{} rolled 1, lost turn!", this->name));
             this->gameContext->setTurn("enemy"); // Player loses its turn 
         }
         // Double damage
         else if (this->roll == 6){
-            this->gameContext->addMessage(std::format("{} rolled 6, double damage!", this->name));
+            this->gameContext->addMessage(fmt::format("{} rolled 6, double damage!", this->name));
             this->attack = this->attack * 2; 
         }
         // Normal roll
         else {
-            this->gameContext->addMessage(std::format("{} rolled: {}", this->name, this->roll));
+            this->gameContext->addMessage(fmt::format("{} rolled: {}", this->name, this->roll));
             this->attack += this->roll; 
         }
     }
     // Attack
     else if (input_vec[0] == "A") {
-        std::cout << "Attacked enemy: -" << this->attack << std::endl;
+        // Show options to user
+        std::cout << "Select target:"; 
+        int i = 0;
+        std::vector<Player*>& playerList = this->gameContext->getEnemies();
+        for (const auto& player : playerList) {
+            std::cout << fmt::format(" [{}] {}", i, player->name); 
+            i++; 
+        }
+        std::cout << std::endl; 
+
+        // Requests input 
+        std::string target_str; 
+        std::getline(std::cin, target_str);
+
+        // Transform input into a pointer to Player target
+        Player* target = playerList[std::stoi(target_str)];
+
+        this->gameContext->addMessage(
+            fmt::format("Attacked {}: -{}", target->name, this->attack));
+        target->health = target->health - (this->attack - target->defense);
         this->attack = 0; 
         this->gameContext->setTurn("enemy"); // Finished turn 
     }
@@ -55,21 +79,21 @@ void Player::run_turn() {
 
     while (is_turn == true) {
         this->roll = this->rollDice(1, 6);
-
         if (this->roll == 1 ){
             this->attack = 0;
-            this->gameContext->addMessage(std::format("{} rolled 1, lost turn!", this->name));
-            is_turn = false; // Player loses its turn 
+            this->gameContext->addMessage(fmt::format("{} rolled 1, lost turn!", this->name));
+            this->gameContext->setTurn("player"); // Player loses its turn 
+            return; 
         }
 
         // Double damage
         else if (this->roll == 6){
-            this->gameContext->addMessage(std::format("{} rolled 6, double damage!", this->name));
+            this->gameContext->addMessage(fmt::format("{} rolled 6, double damage!", this->name));
             this->attack = this->attack * 2; 
         }
         // Normal roll
         else {
-            this->gameContext->addMessage(std::format("{} rolled: {}", this->name, this->roll));
+            this->gameContext->addMessage(fmt::format("{} rolled: {}", this->name, this->roll));
             this->attack += this->roll; 
         }
 
@@ -77,7 +101,14 @@ void Player::run_turn() {
         is_turn = rollDice(1, 100) >= 50;
     }
 
-    this->gameContext->setTurn("player");
+    std::vector<Player*>& playerList = this->gameContext->getPlayers();
+    // select random target 
+    Player* target = playerList[this->rollDice(0, playerList.size()-1)]; 
+    this->gameContext->addMessage(
+        fmt::format("Attacked {}: -{}", target->name, this->attack));
+    target->health = target->health - (this->attack - target->defense);
+    this->attack = 0;
+    this->gameContext->setTurn("player"); // Finished turn 
 }
 
 void Player::printStats() {

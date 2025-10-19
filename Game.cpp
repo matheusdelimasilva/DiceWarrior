@@ -6,6 +6,10 @@
 #include <vector>
 #include <sstream>
 #include <random>
+#include <iomanip> // setw 
+#include <algorithm> // remove_if 
+#include <chrono>  
+#include <thread> 
 
 // #include <unordered_set>
 
@@ -21,6 +25,60 @@ std::vector<std::string> tokenize(std::string input) {
         tokens.push_back(token);
     }
     return tokens;
+}
+
+void Game::printStats(std::vector<Player*> players) {
+    //const int cardWidth = 22;
+    const int cardsPerRow = 6;
+
+    for (size_t i = 0; i < players.size(); i += cardsPerRow) {
+        // Top border
+        for (size_t j = i; j < i + cardsPerRow && j < players.size(); j++) {
+            std::cout << " ╔════════════════════╗ ";
+        }
+        std::cout << "\n";
+
+        // Name row
+        for (size_t j = i; j < i + cardsPerRow && j < players.size(); j++) {
+            std::string name = players[j]->name;
+            if (name.length() > 18) name = name.substr(0, 15) + "...";
+            std::cout << " ║ " << std::left << std::setw(18) << name << " ║ ";
+        }
+        std::cout << "\n";
+
+        // Separator
+        for (size_t j = i; j < i + cardsPerRow && j < players.size(); j++) {
+            std::cout << " ╠════════════════════╣ ";
+        }
+        std::cout << "\n";
+
+        // Health row
+        for (size_t j = i; j < i + cardsPerRow && j < players.size(); j++) {
+            std::cout << " ║ ❤️  HP: " << std::left << std::setw(12)
+                << players[j]->health << "║ ";
+        }
+        std::cout << "\n";
+
+        // Attack row
+        for (size_t j = i; j < i + cardsPerRow && j < players.size(); j++) {
+            std::cout << " ║ ⚔️  ATK: " << std::left << std::setw(11)
+                << players[j]->attack << "║ ";
+        }
+        std::cout << "\n";
+
+        // Defense row
+        for (size_t j = i; j < i + cardsPerRow && j < players.size(); j++) {
+            std::cout << " ║ 🛡️  DEF: " << std::left << std::setw(11)
+                << players[j]->defense << "║ ";
+        }
+        std::cout << "\n";
+
+        // Bottom border
+        for (size_t j = i; j < i + cardsPerRow && j < players.size(); j++) {
+            std::cout << " ╚════════════════════╝ ";
+    }
+        std::cout << "\n\n";
+    }
 }
 
 
@@ -46,6 +104,7 @@ void printMessage(std::vector<std::string>& msgs, bool center=false) {
     }
     else {
         for (const auto& msg : msgs) {
+            //std::this_thread::sleep_for(std::chrono::milliseconds(800));
             std::cout << "| " << msg; 
             int padding = SCREEN_WIDTH - msg.length() - 4;
             printRepeatChar(' ', padding);
@@ -57,6 +116,18 @@ void printMessage(std::vector<std::string>& msgs, bool center=false) {
     }
     printRepeatChar('=', SCREEN_WIDTH); std::cout << std::endl;
 
+}
+
+void checkStats(std::vector<Player*>& players) {
+    // Remove pointers from vector if health <= 0
+    players.erase(
+        std::remove_if(players.begin(), players.end(), 
+            [](const Player* player) {
+                return player->health <= 0;
+            }
+        ),
+        players.end()
+    );
 }
 
 void ClearTerminal() {
@@ -80,8 +151,11 @@ int Game::run() {
 
     ClearTerminal();
     
-    Player p     = Player( "Player", this);      // Player  
-    Player enemy = Player( "Monster", this );  // Enemy 
+    Player p      = Player( "Player", this, 50 );      // Player  
+    
+    this->players   = { &p };
+    Level lvl       = Level(1, this); 
+    this->currLvl   = &lvl;
 
     this->addMessage("Welcome!");
 
@@ -90,7 +164,8 @@ int Game::run() {
         if (!msgs.empty()) {
             printMessage(msgs); 
         }
-        p.printStats(); 
+        printStats(players);
+        printStats(lvl.getEnemies());
         std::cout << "Actions: " << std::endl;
         std::cout << "[R] Roll | [A] Attack (" << p.attack << ")" << std::endl; 
         std::cout << "> ";
@@ -102,25 +177,21 @@ int Game::run() {
         if (!input_vec.empty()) {
             // Exit 
             if (input_vec[0] == "exit") {
-                break;
+                return 0;
             }
             // Player's turn 
             if (this->turn == "player") {
-                p.run_turn(input_vec); 
+                for (const auto& pl : players) {
+                    pl->run_turn(input_vec);
+                }
+                checkStats(lvl.getEnemies());
             }
             // Enemy's turn
             if (this->turn == "enemy") {
-                enemy.run_turn();
-                // enemy.roll = rollDice(1, 6);
-                // std::cout << "Enemy rolled: " << enemy.roll << std::endl;
-                // enemy.attack += enemy.roll;
-                // std::cout << "Enemy attacked " << enemy.attack << std::endl;
-                // p.health = p.health - std::abs( enemy.attack - p.defense );
-                // enemy.attack = 0;
-                // turn = "player"; // finish turn 
-            }
-            else {
-                std::cerr << "Turn unidentified" << std::endl;
+                for (const auto& en : lvl.getEnemies()) {
+                    en->run_turn(); 
+                }
+                checkStats(players);
             }
         }
 
@@ -150,6 +221,20 @@ int Game::getSeed() {
 std::mt19937& Game::getGenerator() {
     return this->gen;
 }
+
+std::vector<Player*>& Game::getPlayers() {
+    return players;
+}
+
+std::vector<Player*>& Game::getEnemies() {
+    return currLvl->getEnemies();
+}
+
+Level* Game::getCurrLevel() {
+    return currLvl;
+}
+
+
 
 // void Game::Update()
 // {

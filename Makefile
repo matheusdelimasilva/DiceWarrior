@@ -1,12 +1,12 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -std=c++11 -I/opt/homebrew/include -Wall -Wextra -pedantic
-LDFLAGS = -L/opt/homebrew/lib
+CXXFLAGS = -std=c++2b -I/opt/homebrew/include -Wall -Wextra -pedantic -g
+LDFLAGS = -L/opt/homebrew/lib -lfmt
 LIBS = -lraylib -framework OpenGL -framework Cocoa -framework IOKit -framework CoreAudio -framework CoreVideo
 
 # Project files
 TARGET = dice
-SRCS = main.cpp Game.cpp
+SRCS := $(wildcard *.cpp)
 OBJS = $(SRCS:.cpp=.o)
 
 # Default target
