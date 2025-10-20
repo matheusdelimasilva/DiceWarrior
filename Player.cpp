@@ -23,8 +23,8 @@ int Player::rollDice(int min, int max) {
 
 // Runs when it's the players turn
 void Player::run_turn(std::vector<std::string> input_vec) {
-    // Roll 
-    if (input_vec[0] == "R") {
+    // Roll Attack 
+    if (input_vec[0] == "A") {
         this->roll = this->rollDice(1,6);
         // Lose turn 
         if (this->roll == 1 ){
@@ -39,12 +39,33 @@ void Player::run_turn(std::vector<std::string> input_vec) {
         }
         // Normal roll
         else {
-            this->gameContext->addMessage(fmt::format("{} rolled: {}", this->name, this->roll));
+            this->gameContext->addMessage(fmt::format("{} attack +{}", this->name, this->roll));
             this->attack += this->roll; 
         }
     }
-    // Attack
-    else if (input_vec[0] == "A") {
+    // Roll Defense 
+    else if (input_vec[0] == "D") {
+        this->roll = this->rollDice(1, 6);
+        // Lose turn 
+        if (this->roll == 1) {
+            this->attack = 0;
+            this->defense = 0;
+            this->gameContext->addMessage(fmt::format("{} rolled 1, lost turn!", this->name));
+            this->gameContext->setTurn("enemy"); // Player loses its turn 
+        }
+        // Double defense
+        else if (this->roll == 6) {
+            this->gameContext->addMessage(fmt::format("{} rolled 6, double defense!", this->name));
+            this->defense = this->attack * 2;
+        }
+        // Normal roll
+        else {
+            this->gameContext->addMessage(fmt::format("{} defense +{}", this->name, this->roll));
+            this->defense += this->roll;
+        }
+    }
+    // Finish turn
+    else if (input_vec[0] == "F") {
         // Show options to user
         std::cout << "Select target:"; 
         int i = 0;

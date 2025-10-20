@@ -11,6 +11,7 @@ class Level {
 public:
     std::vector<Player*>& getEnemies(); // returns a reference to enemies
     Level(int number, Game* game);
+    ~Level(); // Destructor to clean up dynamically allocated enemies
 private:
     std::vector<Player*> enemies; // pointers to enemies
     int number; // Level 1, 2, ...

@@ -15,6 +15,16 @@ Level::Level(int number, Game* game) {
     }
 }
 
+// Destructor
+Level::~Level() {
+    // Clean up remaining enemies (ones that haven't been killed)
+    // Note: Dead enemies (health <= 0) are already deleted by checkStats
+    for (Player* enemy : enemies) {
+        delete enemy;
+    }
+    enemies.clear();
+}
+
 std::vector<Player*>& Level::getEnemies() {
     return enemies;
 }

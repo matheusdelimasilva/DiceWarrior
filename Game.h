@@ -8,6 +8,7 @@
 class Game {
     public:
         Game();
+        ~Game();
         int  run();
         void addMessage(const std::string& msg);
         void setTurn(const std::string& newTurn);

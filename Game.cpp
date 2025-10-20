@@ -119,15 +119,15 @@ void printMessage(std::vector<std::string>& msgs, bool center=false) {
 }
 
 void checkStats(std::vector<Player*>& players) {
-    // Remove pointers from vector if health <= 0
-    players.erase(
-        std::remove_if(players.begin(), players.end(), 
-            [](const Player* player) {
-                return player->health <= 0;
-            }
-        ),
-        players.end()
-    );
+    // Delete and remove pointers from vector if health <= 0
+    for (auto it = players.begin(); it != players.end(); ) {
+        if ((*it)->health <= 0) {
+            delete *it;  // Delete the object
+            it = players.erase(it);  // Remove from vector and get next iterator
+        } else {
+            ++it;
+        }
+    }
 }
 
 void ClearTerminal() {
@@ -151,11 +151,9 @@ int Game::run() {
 
     ClearTerminal();
     
-    Player p      = Player( "Player", this, 50 );      // Player  
-    
-    this->players   = { &p };
-    Level lvl       = Level(1, this); 
-    this->currLvl   = &lvl;
+    // Use heap allocation instead of stack to prevent dangling pointers    
+    this->players = { new Player("Player", this, 50) };
+    this->currLvl = new Level(1, this);
 
     this->addMessage("Welcome!");
 
@@ -165,9 +163,9 @@ int Game::run() {
             printMessage(msgs); 
         }
         printStats(players);
-        printStats(lvl.getEnemies());
+        printStats(this->currLvl->getEnemies());
         std::cout << "Actions: " << std::endl;
-        std::cout << "[R] Roll | [A] Attack (" << p.attack << ")" << std::endl; 
+        std::cout << "[A] Roll Attack | [D] Roll Defense | [F] Finish Turn" << std::endl; 
         std::cout << "> ";
         std::getline(std::cin, input);
         input_vec = tokenize(input);
@@ -177,18 +175,18 @@ int Game::run() {
         if (!input_vec.empty()) {
             // Exit 
             if (input_vec[0] == "exit") {
-                return 0;
+                break;
             }
             // Player's turn 
             if (this->turn == "player") {
                 for (const auto& pl : players) {
                     pl->run_turn(input_vec);
                 }
-                checkStats(lvl.getEnemies());
+                checkStats(this->currLvl->getEnemies());
             }
             // Enemy's turn
             if (this->turn == "enemy") {
-                for (const auto& en : lvl.getEnemies()) {
+                for (const auto& en : this->currLvl->getEnemies()) {
                     en->run_turn(); 
                 }
                 checkStats(players);
@@ -197,12 +195,22 @@ int Game::run() {
 
         input_vec.clear(); // Clean up the token vector 
     }
-
     return 0;
 }
 
 Game::Game() {   
     this->seed = 42;
+}
+
+Game::~Game() {
+    // Clean up heap-allocated objects (if loop exits normally)
+    // Only delete player if still alive (not already deleted by checkStats)
+    // if (!players.empty() && players[0] == p) {
+    //     delete p;
+    // }
+    //players.clear();
+    // delete lvl;  // Level destructor handles remaining enemies
+    //this->currLvl = nullptr;
 }
 
 void Game::addMessage(const std::string& msg) {
